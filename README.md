@@ -150,6 +150,17 @@ sudo dmsetup ls
 # 應看到：containerd-thinpool  (253:0)
 ```
 
+> **若需要重建 thinpool**：thinpool 和 containerd 各自維護一套狀態，重建時必須兩邊同時清空，否則會出現 `snapshot does not exist` 錯誤。單獨重建 thinpool 或單獨清 containerd 都不夠，必須一起來：
+> ```bash
+> sudo microk8s stop
+> sudo dmsetup remove --force containerd-thinpool
+> sudo losetup -d /dev/loopX  # 替換為實際編號
+> sudo losetup -d /dev/loopY
+> sudo rm -rf /var/snap/microk8s/common/var/lib/containerd
+> sudo rm -rf /var/snap/microk8s/common/var/lib/containerd-devmapper/*
+> ```
+> 清完後從重新掛載 loop 設備開始跑。
+
 ---
 
 ### 6. 修改 Containerd 設定並切換為 Firecracker
@@ -270,6 +281,7 @@ curl http://localhost:<NodePort>
 | `device-mapper: reload ioctl failed` | loop 設備編號填錯 | `losetup -a` 確認實際編號後再建立 thinpool |
 | Pod 卡在 `ContainerCreating` | 系統找不到 `containerd-shim-kata-v2` | 步驟 7 執行軟連結指令 |
 | `error: selector is required` | Pod 缺少 Label | 確認 YAML 中有 `labels: app: nginx` |
+| `snapshot does not exist: not found` | thinpool 重建後與 containerd metadata 資料庫不同步 | 停掉 MicroK8s，同時清除 thinpool 和 `/var/snap/microk8s/common/var/lib/containerd`，再從重新掛載 loop 開始 |
 
 ---
 
